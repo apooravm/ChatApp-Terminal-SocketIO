@@ -21,8 +21,6 @@ const figlet  = require('figlet');
 
 console.log("Connecting to the server...");
 
-//----------------------------------------------------------------
-
 socket.on('connect', () => {
 	clientInfo.socketID = socket.id;
 	socket.emit('init-info', {clientID: clientInfo.socketID, clientName: clientInfo.name});
