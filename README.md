@@ -9,4 +9,6 @@ After cloning the repo
 
 ## Running the App
 
->node ./src/client/client.js
+`node ./src/client/client.js`
+
+`\help` when connected to the server.
