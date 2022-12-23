@@ -4,8 +4,8 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "server": "nodemon ./server/server.js",
-    "client": "nodemon ./client/client.js"
+    "server": "nodemon ./src/server/server.js",
+    "client": "nodemon ./src/client/client.js"
   },
   "keywords": [],
   "author": "",

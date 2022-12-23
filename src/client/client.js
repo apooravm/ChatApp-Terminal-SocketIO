@@ -1,8 +1,8 @@
 const io = require('socket.io-client');
 const chalk = require('chalk');
 const readline = require('readline');
-// const socket = io("http://localhost:3000");
-const socket = io("https://chat-app-1fjn.onrender.com");
+const socket = io("http://localhost:3000");
+// const socket = io("https://chat-app-1fjn.onrender.com");
 
 // Readline Init
 const rl = readline.createInterface({input: process.stdin, output: process.stdout, terminal: false});

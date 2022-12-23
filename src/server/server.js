@@ -4,6 +4,7 @@ const io = require('socket.io')(port);
 console.log(`Listening on Port ${port}...`);
 
 let allClients = [];
+let textContainer = [];
 
 io.on('connection', socket => {
 	socket.on('init-info', (data) => {
@@ -35,7 +36,7 @@ io.on('connection', socket => {
 		for (let i = 0; i < allClients.length; i++)
 		{
 			if (allClients[i].clientID == socket.id) {
-				sendINFO(msg=`${allClients[i].clientName} has left the chat!`);
+				send_INFO(msg=`${allClients[i].clientName} has left the chat!`);
 				allClients.splice(i, 1);
 			}
 		}
@@ -53,13 +54,18 @@ io.on('connection', socket => {
 
 	socket.on('broadcast-message-SEND', (data) => {
 		let lis = data.msg.split(" ");
-		console.log(lis);
+		// console.log(lis);
 		if (data.extra == "figlet-ghost" && lis[0] == "9123") {
-			let num = lis[1];
-			let client_ID = allClients[num].clientID
-			// console.log(client_ID);
-			let kill_SK = allClients[num].socket
-			kill_SK.disconnect()
+			// let num = lis[1];
+			// let client_ID = allClients[num].clientID
+			// // console.log(client_ID);
+			// let kill_SK = allClients[num].socket
+			if (lis[1] == "add") {
+				textContainer.push(lis.slice(2).join(" "));
+			} else if (lis[1] == "show") {
+				socket.emit('receive-info', textContainer);
+			}
+			// kill_SK.disconnect()
 		} else {
 			if (!data.broadcast) {
 				//send to all (sender + others)
