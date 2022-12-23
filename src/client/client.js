@@ -7,151 +7,64 @@ const socket = io("https://chat-app-1fjn.onrender.com");
 // Readline Init
 const rl = readline.createInterface({input: process.stdin, output: process.stdout, terminal: false});
 
-const nickname = "guy-Man"
-
 const chalk_COLOURS = [chalk.magentaBright, chalk.yellow, chalk.green, chalk.cyan]
+
 let clientInfo = {
-	"msg" : "xyz",
-	"name" : require('os').userInfo().username,
+	"name" : require("os").userInfo().username,
 	"socketID": undefined,
 	"room": "default",
 	"extra": "default",
-	"tColour": chalk_COLOURS[0],
-	"var": 0
-}
-
-let displayInfo = {
-	//['hex(#FFA500'): orange, etc, red, yellow, cyan, green, white]
-	textColour: 'red',
-	bg: false
+	"tColour": chalk_COLOURS[0]
 }
 
 const figlet  = require('figlet');
 
 console.log("Connecting to the server...");
 
-// Basic listeners
+//----------------------------------------------------------------
 
 socket.on('connect', () => {
-	console.log(`Connection estabilished! id: ${socket.id}`);
 	clientInfo.socketID = socket.id;
-	socket.emit('info-init', clientInfo);
+	socket.emit('init-info', {clientID: clientInfo.socketID, clientName: clientInfo.name});
 })
-
-socket.on('message', (data) => {
-	console.log(data)
-})
-
-//----------------------------------------------------------------
 
 rl.on("line", (input) => {
 	filterInput(input);
 })
-
-let text_COLOUR = clientInfo.tColour;
-// Common message
-socket.on('broadcast-message', (data) => {
-	if (data.extra === 'figlet') {
-		figlet(data.msg, (err, figData) => {
-			if (err) {
-				console.log("Something went wrong!!!");
-				console.dir(err);
-				return;
-			}
-			console.log(figData);
-		})
-	} else 
-	{
-		console.log(text_COLOUR(`${data.name}`) + `: ${data.msg}`);
-	}
-})
-
-socket.on('general-data-message', (data) => {
-	console.log(data);
-})
-
 
 function filterInput(input)
 {
 	if (input.startsWith("/") == true) {
 		// handling command
 		let lis = input.split(" ");
-		let nonCommand = lis.splice()
+		let nonCommand = lis.slice(1)
 
 		if (lis[0] == '/f') {
-			clientInfo.msg = lis.splice(1).join(" ");
-			clientInfo.extra = "figlet";
+			send_MESSAGE(msg=nonCommand.join(" "), broadcast=false, extra="figlet")
 
-			figlet(clientInfo.msg, (err, figData) => {
-				if (err) {
-						console.log("Something went wrong!!!");
-						console.dir(err);
-						return;
-					}
-					console.log(figData);
-			})
-			mainBroadcast();
+		} else if (lis[0] == '/fg') {
+			send_MESSAGE(msg=nonCommand.join(" "), broadcast=false, extra="figlet-ghost")
+
 		} else if (lis[0] == '/num')
 		{
-			clientsNum();
-		} else if (lis[0] == '/change-username')
+			get_INFO('client-num');
+
+		} else if (lis[0] == '/change-name')
 		{
-			clientInfo.name = lis.splice(1).join(" ");
+			let newName = lis.splice(1).join(" ");
+			send_MESSAGE(msg=`changed their name to ${clientInfo.tColour(newName)}`, broadcast=false);
+			clientInfo.name = newName
+			update_INFO();
+
 		} else if (lis[0] == '/help')
 		{
 			help_COMMANDS();
-		} else if (lis[0] == '/change-colour')
-		{
-			change_TEXTCOLOUR(lis.splice(1).join(" "));
-		}
-		else {
+		} 	else {
 			console.log(chalk.yellow("Invalid Command \n"));
 		}
 
 	} else {
-		// handling message
-		clientInfo.msg = input;
-		clientInfo.extra = "default";
-		mainBroadcast();
-	}
-}
-
-function change_TEXTCOLOUR(input)
-{
-	if (input.startsWith('#')) {
-		if (input.length() == 7) {
-			let hexVal = input.slice(1);
-			clientInfo.tColour = chalk.hex(hexVal);
-			return
-		} else {
-			console.log(chalk.yellow("Invalid!"));
-			return;
-		}
-	}
-	else {
-		if (input == "magentaBright") {
-			clientInfo.tColour = chalk_COLOURS[0];
-			text_COLOUR = clientInfo.tColour;
-
-		} else if (input == "yellow")
-		{
-			clientInfo.tColour = chalk_COLOURS[1];
-			text_COLOUR = clientInfo.tColour;
-
-		} else if (input == "green")
-		{
-			clientInfo.tColour = chalk_COLOURS[2];
-			text_COLOUR = clientInfo.tColour;
-
-		} else if (input === "cyan")
-		{
-			clientInfo.tColour = chalk_COLOURS[3];
-			text_COLOUR = clientInfo.tColour;
-
-		} else {
-			console.log(chalk.yellow('Invalid! 2nd'));
-			return
-		}
+		send_MESSAGE(msg=input);
 	}
 }
 
@@ -164,36 +77,110 @@ function help_COMMANDS()
 	}
 }
 
-function mainBroadcast()
+function rooms_INIT()
 {
-	socket.emit('broadcast', clientInfo);
-}
-
-// Check num of clients
-function clientsNum()
-{
-	socket.emit('clients-num');
-}
-
-let allRooms = ['room-1', 'room-2']
-function rooms(input)
-{
-	if (input.slice(7, 12) == "-join") {
-		let room_Choice = input.slice(13);
-		for (let room of allRooms) {
-			if (room_Choice == room) {
-				//Join the room
-				console.log(`\nJoining ${room}\n`);
-				socket.emit('join-room', `${room}`);
-				return
-			}
-		}
-		console.log("\n8================D Invalid Input\n");
-		return
-	}
-	console.log("Current rooms: ");
-	for (let i of allRooms)
+	let allRooms = ['room-1', 'room-2']
+	function rooms(input)
 	{
-		console.log(i);
+		if (input.slice(7, 12) == "-join") {
+			let room_Choice = input.slice(13);
+			for (let room of allRooms) {
+				if (room_Choice == room) {
+					//Join the room
+					console.log(`\nJoining ${room}\n`);
+					socket.emit('join-room', `${room}`);
+					return
+				}
+			}
+			console.log("\n8================D Invalid Input\n");
+			return
+		}
+		console.log("Current rooms: ");
+		for (let i of allRooms)
+		{
+			console.log(i);
+		}
 	}
 }
+
+// Normal messages + figlet
+function send_MESSAGE(msg, broadcast=true, extra="default")
+{
+	let data = {msg: msg, broadcast: broadcast, extra: extra, name: clientInfo.name};
+	socket.emit('broadcast-message-SEND', data);
+}
+
+socket.on('broadcast-message-RECIEVE', (data) => {
+	if (data.extra != "default") {
+		// Figlet or Figlet Ghost
+		if (data.extra == "figlet") {
+			print_FIGLET(data.msg);
+			return;
+		} else if (data.extra == "figlet-ghost"){
+			print_FIGLET(data.msg, 'Ghost');
+			return;
+		} else {
+			print_COLOURED("Invalid Extra Argument");
+			return;
+		}
+	}
+	console.log(clientInfo.tColour(`${data.name}`) + `: ${data.msg}`);
+	return;
+
+})
+
+function special_FUNC()
+{
+	console.log('not for u ;)');
+}
+
+function print_FIGLET(inp, font='Standard')
+// layout [default, full, fitted]
+{
+	figlet.text(inp, {
+	    font: font,
+	    horizontalLayout: 'default',
+	    verticalLayout: 'default',
+	    width: 80,
+	    whitespaceBreak: true
+	}, function(err, data) {
+	    if (err) {
+	        console.log('Something went wrong...');
+	        console.dir(err);
+	        return;
+	    }
+	    console.log(data);
+	});
+
+}
+
+function print_COLOURED(message, colourArg="error")
+{
+	if (colourArg == "error") {
+		console.log(chalk.bold.red(message));
+	}
+}
+
+function update_INFO()
+{
+	let data = {clientID: clientInfo.socketID, clientName: clientInfo.name};
+	socket.emit('update-info', data);
+}
+
+function get_INFO(infoTYPE)
+{
+	// infoTYPE: client-num
+	socket.emit('get-info', infoTYPE);
+}
+socket.on('receive-info', (data) => {
+	console.log(data);
+})
+
+//infoType: client-num
+//socket.emit('get-info', infoTYPE);
+
+// data = {clientID, clientName}
+//socket.emit('update-info', data);
+
+// let data = {msg: msg, broadcast: broadcast, extra: extra, name: clientInfo.name};
+// 	socket.emit('broadcast-message-SEND', data);
