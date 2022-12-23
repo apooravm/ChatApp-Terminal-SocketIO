@@ -1,7 +1,8 @@
 const io = require('socket.io-client');
 const chalk = require('chalk');
 const readline = require('readline');
-const socket = io("http://localhost:3000");
+// const socket = io("http://localhost:3000");
+const socket = io("https://chat-app-1fjn.onrender.com");
 
 // Readline Init
 const rl = readline.createInterface({input: process.stdin, output: process.stdout, terminal: false});
@@ -80,6 +81,15 @@ function filterInput(input)
 		if (lis[0] == '/f') {
 			clientInfo.msg = lis.splice(1).join(" ");
 			clientInfo.extra = "figlet";
+
+			figlet(clientInfo.msg, (err, figData) => {
+				if (err) {
+						console.log("Something went wrong!!!");
+						console.dir(err);
+						return;
+					}
+					console.log(figData);
+			})
 			mainBroadcast();
 		} else if (lis[0] == '/num')
 		{

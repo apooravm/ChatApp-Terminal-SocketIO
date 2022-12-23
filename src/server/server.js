@@ -23,6 +23,11 @@ io.on('connection', socket => {
 
 	socket.on('disconnect', () => {
 		console.log(`${socket.id} has left`);
+		for (var i = 0; i < allClients.length; i++) {
+			if (allClients[i].clientID == socket.id) {
+				allClients.splice(i, 1);
+			}
+		}
 		socket.broadcast.emit('message', `${socket.id} has left`);
 	})
 
