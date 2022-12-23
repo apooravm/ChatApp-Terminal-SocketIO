@@ -5,7 +5,7 @@ Terminal based Chat App using socket.io
 
 After cloning the repo
 
->npm install
+`npm install`
 
 ## Running the App
 
