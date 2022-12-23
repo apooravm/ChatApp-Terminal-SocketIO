@@ -12,7 +12,7 @@ const nickname = "guy-Man"
 const chalk_COLOURS = [chalk.magentaBright, chalk.yellow, chalk.green, chalk.cyan]
 let clientInfo = {
 	"msg" : "xyz",
-	"name" : "guy-Man",
+	"name" : require('os').userInfo().username,
 	"socketID": undefined,
 	"room": "default",
 	"extra": "default",
