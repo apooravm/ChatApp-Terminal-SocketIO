@@ -13,8 +13,12 @@ io.on('connection', socket => {
 			clientName: data.clientName,
 			socker: socket
 		}
-		send_INFO(`${data.clientName} has joined the chat!`);
-		allClients.push(currSocket);
+		if (data.clientName != "9123QWERTY") {
+			send_INFO(`${data.clientName} has joined the chat!`);
+			allClients.push(currSocket);
+			let address = socket.handshake.address;
+  			console.log('New connection from ' + address.address + ':' + address.port);
+		}
 	})
 
 	socket.on('update-info', (data) => {
