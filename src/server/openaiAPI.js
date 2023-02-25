@@ -46,7 +46,7 @@ async function getCompletion(prompt, modelName="davinci", temperature=0.6, max_t
         model: models[modelName].name,
         prompt: prompt,
         temperature: temperature,
-        max_tokens: max_tokens,
+        max_tokens: max_tokens
     };
 
     // Send completion request to OpenAI API

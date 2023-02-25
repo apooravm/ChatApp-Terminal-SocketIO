@@ -1,12 +1,13 @@
+require('dotenv').config();
 const port = process.env.PORT || 3000;
 const io = require('socket.io')(port);
-require('dotenv').config();
 const AuthKey = process.env.PASS;
 const adKey = process.env.admn;
 const comp = require('./openaiAPI');
+const modelName = "davinci";
 
 async function complete(text) {
-    const resp = await comp(text);
+    const resp = await comp(text, modelName);
 	return resp;
 }
 
@@ -53,7 +54,7 @@ class Server {
 										complete(dataframe.message).then((res) => {
 											const msgFrame = this.getDataFrame();
 											msgFrame.message = res;
-											msgFrame.name = 'Curie-001';
+											msgFrame.name = `${modelName}-001`;
 											msgFrame.extra = 'default';
 											sendMessage(msgFrame, false);
 										})

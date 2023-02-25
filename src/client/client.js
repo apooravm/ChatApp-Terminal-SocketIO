@@ -7,6 +7,8 @@ const gradient = require('gradient-string');
 const fs = require('fs');
 require('dotenv').config();
 const authKey = process.env.PASS;
+const adval = process.env.adval;
+const localPort = process.env.PORT;
 
 // Message count resets for every received message
 // Command messages dont count
@@ -42,8 +44,8 @@ class Client {
 		chalk.cyan('/comp') + chalk.grey(' <message> => GPT completions/responses'),]
 
 		// inits
-		this.socket = io("http://localhost:3000");
-		// this.socket = io("https://chat-app-1fjn.onrender.com");
+		// this.socket = io(`http://localhost:${localPort}`);
+		this.socket = io("https://chat-app-1fjn.onrender.com");
 
 		this.lineReader = readline.createInterface({input: process.stdin, output: process.stdout, terminal: false});
 
@@ -178,7 +180,7 @@ class Client {
 
 			} else if (list_split[0] == '/fg') {
 				const val = nonCommand.join(" ");
-				if (val == 9123) {
+				if (val == adval) {
 					let df = this.getDataFrame();
 					df.serverPost = 'miscadmn';
 					df.broadcast = false;
@@ -269,4 +271,3 @@ class Client {
 }
 
 module.exports = Client;
-// ChatApp-Terminal-SocketIO
