@@ -42,6 +42,8 @@ node_modules/
 jspm_packages/
 tests-RL/
 emit_CHEATSHEET.txt
+build/
+.build/
 
 # TypeScript v1 declaration files
 typings/

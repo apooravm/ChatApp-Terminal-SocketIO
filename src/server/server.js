@@ -1,82 +1,169 @@
 const port = process.env.PORT || 3000;
 const io = require('socket.io')(port);
+require('dotenv').config();
+const AuthKey = process.env.PASS;
+const adKey = process.env.admn;
+const comp = require('./openaiAPI');
 
-console.log(`Listening on Port ${port}...`);
+async function complete(text) {
+    const resp = await comp(text);
+	return resp;
+}
 
-let allClients = [];
-let textContainer = [];
+class Server {
+	constructor() {
+		this.allClients = [];
 
-io.on('connection', socket => {
-	socket.on('init-info', (data) => {
-		let currSocket = {
-			clientID: socket.id,
-			clientName: data.clientName,
-			socker: socket
-		}
-		if (data.clientName != "9123QWERTY") {
-			send_INFO(`${data.clientName} has joined the chat!`);
-			allClients.push(currSocket);
-			let address = socket.handshake.address;
-  			console.log('New connection from ' + address.address + ':' + address.port);
-		}
-	})
-
-	socket.on('update-info', (data) => {
-		for (let i = 0; i < allClients.length; i++)
-		{
-			if (allClients[i].clientID == data.clientID) {
-				allClients[i].clientName = data.clientName
-			}
-		}
-	})
-
-	function send_INFO(data)
-	{
-		//used by: disconnect, get-info
-		io.emit('receive-info', data);
+		// Consts
+		this.MAX_GPT_CALLS = 20;
 	}
 
-	socket.on('disconnect', () => {
-		for (let i = 0; i < allClients.length; i++)
+	run() {
+		console.log(`Listening on Port ${port}...`);
+		io.on('connection', socket => {
+			socket.on('client-to-server-message', (dataframe) => {
+				if (this.authCheck(dataframe.AuthKey)) {
+					const serverGet = dataframe.serverGet;
+					const serverPost = dataframe.serverPost;
+
+					if (serverGet != null) {
+						// getInfo(dataframe);
+						if (dataframe.serverGet == 'client-num') {
+							let currArr = [];
+							for (let client of this.allClients) {
+								currArr.push({ID: client.clientID, Name: client.clientName})
+							}
+							const msgFrame = this.getDataFrame();
+							msgFrame.message = currArr;
+							msgFrame['info-type'] = true;
+							sendMessage(msgFrame, false);
+						} else if (dataframe.serverGet == 'ai-complete') {
+							const msgFrame = this.getDataFrame();
+							msgFrame.name = dataframe.name + " To GPT";
+							msgFrame.message = dataframe.message;
+							msgFrame.extra = dataframe.extra;
+							sendMessage(msgFrame);
+							// Increase Gpt call count
+							for (let i = 0; i < this.allClients.length; i++) {
+								if (this.allClients[i].clientID === socket.id) {
+									if (this.allClients[i].gptCalls <= this.MAX_GPT_CALLS) {
+										// Increment Call Record
+										this.allClients[i].gptCalls += 1;
+										// Return completion
+										complete(dataframe.message).then((res) => {
+											const msgFrame = this.getDataFrame();
+											msgFrame.message = res;
+											msgFrame.name = 'Curie-001';
+											msgFrame.extra = 'default';
+											sendMessage(msgFrame, false);
+										})
+									} else {
+										let df = this.getDataFrame();
+										df.message = `${this.allClients[i].clientName} GPT Call limit reached!`;
+										sendMessage(df, false);
+									}
+								}
+								
+							}
+						}
+					} else if (serverPost != null) {
+						if (dataframe.serverPost == 'init-info') {
+							let currSocket = {
+								"clientID": socket.id,
+								"clientName": dataframe.name,
+								// "socket": socket,
+								"gptCalls": 0
+							}
+							if (currSocket.clientName != adKey) {
+								const msgFrame = this.getDataFrame();
+								msgFrame.message = `${dataframe.name} has joined the chat!`;
+								msgFrame['info-type'] = true;
+								msgFrame.ID = socket.id;
+								// Send back socketId for sync
+								sendMessage(msgFrame, dataframe.broadcast);
+								this.allClients.push(currSocket);
+							}
+						} else if (dataframe.serverPost == 'update-info') {
+							for (let i = 0; i < this.allClients.length; i++)
+							{
+								if (this.allClients[i].clientID == dataframe.clientID) {
+									this.allClients[i].clientName = dataframe.name;
+								}
+							}
+						} else if (dataframe.serverPost == 'miscadmn') {
+							for (let i = 0; i < this.allClients.length; i++)
+							{
+								if (this.allClients[i].clientID == socket.id) {
+									const msgFrame = this.getDataFrame();
+									msgFrame.message = `${this.allClients[i].clientName} has left the chat!`;
+									msgFrame['info-type'] = true;
+									sendMessage(msgFrame, false);
+									this.allClients.splice(i, 1);
+								}
+							}
+						}
+					} else {
+						const messageToBeSent = this.getDataFrame();
+						messageToBeSent.message = dataframe.message;
+						messageToBeSent.name = dataframe.name;
+						messageToBeSent.extra = dataframe.extra;
+
+						sendMessage(messageToBeSent, dataframe.broadcast);
+					}
+				}
+			})
+
+			socket.on('disconnect', () => {
+				for (let i = 0; i < this.allClients.length; i++)
+				{
+					if (this.allClients[i].clientID == socket.id) {
+						const msgFrame = this.getDataFrame();
+						msgFrame.message = `${this.allClients[i].clientName} has left the chat!`;
+						msgFrame['info-type'] = true;
+						sendMessage(msgFrame, false);
+						this.allClients.splice(i, 1);
+					}
+				}
+			})
+
+			function sendMessage(message=null, broadcast=true) {
+				if (broadcast) {
+					// Normal Message
+					socket.broadcast.emit('server-to-client-message', message);
+				} else {
+					io.emit('server-to-client-message', message);
+				}
+			}
+		});
+	}
+
+	miscdmn(socket) {
+		for (let i = 0; i < this.allClients.length; i++)
 		{
-			if (allClients[i].clientID == socket.id) {
-				send_INFO(msg=`${allClients[i].clientName} has left the chat!`);
-				allClients.splice(i, 1);
+			if (this.allClients[i].clientID == socket.id) {
+				const msgFrame = this.getDataFrame();
+				msgFrame.message = `${this.allClients[i].clientName} has left the chat!`;
+				msgFrame['info-type'] = true;
+				sendMessage(msgFrame, false);
+				this.allClients.splice(i, 1);
 			}
 		}
-	})
+		return this.allClients;
+	}
 
-	socket.on('get-info', (infoTYPE) => {
-		if (infoTYPE == 'client-num') {
-			let currArr = [];
-			for (let client of allClients) {
-				currArr.push({ID: client.clientID, Name: client.clientName})
-			}
-			send_INFO(currArr);
+	getDataFrame() {
+		return {
+			"message": null,
+			"name": "Server",
+			"extra": "default",
+			"info-type": false,
+			"ID": null
 		}
-	})
+	}
 
-	socket.on('broadcast-message-SEND', (data) => {
-		let lis = data.msg.split(" ");
-		// console.log(lis);
-		if (data.extra == "figlet-ghost" && lis[0] == "9123") {
-			// let num = lis[1];
-			// let client_ID = allClients[num].clientID
-			// // console.log(client_ID);
-			// let kill_SK = allClients[num].socket
-			if (lis[1] == "add") {
-				textContainer.push(lis.slice(2).join(" "));
-			} else if (lis[1] == "show") {
-				socket.emit('receive-info', textContainer);
-			}
-			// kill_SK.disconnect()
-		} else {
-			if (!data.broadcast) {
-				//send to all (sender + others)
-				io.emit('broadcast-message-RECIEVE', data);
-			} else {
-				socket.broadcast.emit('broadcast-message-RECIEVE', data);
-			}
-		}
-	})
-})
+	authCheck(pass) {
+		return pass == AuthKey
+	}
+}
+
+module.exports = Server;
