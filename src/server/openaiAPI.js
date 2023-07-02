@@ -35,6 +35,7 @@ async function getCompletion(prompt, modelName="davinci", temperature=0.6, max_t
         console.log("Invalid KEY!");
         return;
       }
+    return "Completions/Chat unavailable!";
 
     // Check for valid model name
     if (!models[modelName]) {

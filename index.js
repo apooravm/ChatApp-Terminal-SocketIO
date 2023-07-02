@@ -1,4 +1,5 @@
 const Client = require("./src/client/client");
-
-const c1 = new Client(1234);
+const localPort = process.env.PORT;
+const AuthKey = process.env.PASS;
+const c1 = new Client(AuthKey, `http://localhost:${localPort}`);
 c1.run();

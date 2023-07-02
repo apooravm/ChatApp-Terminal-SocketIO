@@ -6,14 +6,13 @@ const infoFile = require("./info.json");
 const gradient = require('gradient-string');
 const fs = require('fs');
 require('dotenv').config();
-const authKey = process.env.PASS;
-const adval = process.env.adval;
+const adval = process.env.ADMN_VAL;
 const localPort = process.env.PORT;
 
 // Message count resets for every received message
 // Command messages dont count
 class Client {
-	constructor(AUTH_KEY) {
+	constructor(AUTH_KEY, URL) {
 		this.name = require("os").userInfo().username;
 		this.clientID = null;
 		this.room = null;
@@ -45,7 +44,8 @@ class Client {
 
 		// inits
 		// this.socket = io(`http://localhost:${localPort}`);
-		this.socket = io("https://chat-app-1fjn.onrender.com");
+		// this.socket = io("https://chat-app-1fjn.onrender.com");
+		this.socket = io(URL)
 
 		this.lineReader = readline.createInterface({input: process.stdin, output: process.stdout, terminal: false});
 
@@ -64,6 +64,7 @@ class Client {
 		// Initial Connection
 		this.socket.on('connect', () => {
 			this.clientWrite("Connected!");
+			this.clientWrite(chalk.cyan('/help ') + chalk.grey('list commands'))
 			let dataframe = this.getDataFrame();
 			dataframe.serverPost = this.commCode.initialize;
 			

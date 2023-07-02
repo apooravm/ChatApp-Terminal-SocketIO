@@ -2,7 +2,7 @@ require('dotenv').config();
 const port = process.env.PORT || 3000;
 const io = require('socket.io')(port);
 const AuthKey = process.env.PASS;
-const adKey = process.env.admn;
+const adKey = process.env.ADMN_KEY;
 const comp = require('./openaiAPI');
 const modelName = "davinci";
 
